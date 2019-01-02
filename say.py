@@ -46,20 +46,6 @@ import re, unicodedata
 import string, random
 
 
-def slugify(value):
-    """
-    Converts to lowercase, removes non-word characters (alphanumerics and
-    underscores) and converts spaces to hyphens. Also strips leading and
-    trailing whitespace.
-    """
-    value = unicodedata.normalize('NFKD', value).encode('ascii', 'ignore').decode('ascii')
-    value = re.sub('[^\w\s-]', '', value).strip().lower()
-    return re.sub('[-\s]+', '-', value)
-
-
-def rand(size=6, chars=string.ascii_uppercase + string.digits):
-    return ''.join(random.choice(chars) for x in range(size))
-
 
 def main(conf=None, **kw):
     # response = speech.input("Say something, please.")
@@ -73,13 +59,15 @@ def main(conf=None, **kw):
     r_name = "{}-{}".format(slugify(words), rand())
     r_name = "{}".format(rand())
 
+    # create_say
     create_say_effect(voice_set, words,
         raw_filename=r_name,
         out_filename=r_name,
-        output_dir=config['covert_output_dir'])
+        output_dir=config['covert_output_dir'],
+        add_effect=True)
     time.sleep(.5)
 
-    r_name = "{}.mp3".format(r_name)
+    r_name = "{}-effects.mp3".format(r_name)
     to_string.main(
         dirpath=config['covert_output_dir'],
         input_filename=r_name,
@@ -87,6 +75,30 @@ def main(conf=None, **kw):
     config['created_file'] = r_name
     return config
 
+
+
+def slugify(value):
+    """
+    Converts to lowercase, removes non-word characters (alphanumerics and
+    underscores) and converts spaces to hyphens. Also strips leading and
+    trailing whitespace.
+    """
+    is_unicode = False
+    try:
+        if isinstance(value, unicode):
+            is_unicode = True
+    except NameError as err:
+        pass
+
+    if is_unicode:
+        value = unicodedata.normalize('NFKD', value).encode('ascii', 'ignore').decode('ascii')
+
+    value = re.sub('[^\w\s-]', '', value).strip().lower()
+    return re.sub('[-\s]+', '-', value)
+
+
+def rand(size=6, chars=string.ascii_uppercase + string.digits):
+    return ''.join(random.choice(chars) for x in range(size))
 
 def extract_words(config):
     config = config or {}
@@ -130,13 +142,16 @@ def create_say_effect(voice_set, string,
             raw_filename='raw_output',
             out_filename='output',
             ext='mp3',
-            output_dir=None):
+            output_dir=None, add_effect=True):
     output_dir = output_dir or ''
     raw_fn = os.path.abspath('{}.{}'.format(os.path.join(output_dir, raw_filename), ext))
     outfile = os.path.abspath('{}.{}'.format(os.path.join(output_dir, out_filename), ext))
+    outfile_e = os.path.abspath('{}-effects.{}'.format(os.path.join(output_dir, out_filename), ext))
 
     sapi = create_speech_file(voice_set, raw_fn, string)
-    create_effect_file(raw_fn, outfile)
+    if add_effect is False:
+        return
+    create_effect_file(raw_fn, outfile_e)
 
 
 def create_say(voice_set, string,
